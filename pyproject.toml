@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bgm-gacha-lab"
+version = "0.1.0"
+description = "CLI tool for batch generating lofi/chill backgrounds with MusicGen"
+readme = "README.md"
+authors = [{ name = "BGM Gacha Lab" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+  "audiocraft @ git+https://github.com/facebookresearch/audiocraft.git",
+  "torch",
+  "soundfile",
+  "typer>=0.9",
+  "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+]
+
+[project.scripts]
+"bgm-gacha" = "bgm_gacha_lab.cli:app"
+
+[tool.setuptools.package-data]
+bgm_gacha_lab = ["py.typed"]
