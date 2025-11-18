@@ -14,7 +14,7 @@ from bgm_gacha_lab.generator import _ensure_output_dir, generate_bgm, load_model
 def mock_model():
     """Create a mock MusicGen model."""
     model = MagicMock()
-    model.generate.return_value = torch.randn(1, 1, 32000 * 30)  # 30s audio at 32kHz
+    model.generate.return_value = torch.randn(1, 2, 32000 * 30)  # 30s stereo audio
     return model
 
 
@@ -116,6 +116,33 @@ def test_generate_bgm_sets_params(mock_audio_write, mock_model, test_config):
         duration=test_config.duration,
         cfg_coef=5.0,
     )
+
+
+@patch("bgm_gacha_lab.generator.audio_write")
+def test_generate_bgm_long_duration_chunking(mock_audio_write, mock_model, test_config):
+    """Long clips should be chunked to respect 32-bit index limits."""
+
+    test_config.duration = 10.0
+    test_config.max_segment_duration = 4.0
+    test_config.num_samples = 1
+    test_config.batch_size = 1
+
+    segment_lengths = [4.0, 4.0, 2.0]
+
+    def generate_side_effect(prompts):
+        duration = segment_lengths.pop(0)
+        samples = int(duration * test_config.sample_rate)
+        return torch.ones(len(prompts), 2, samples)
+
+    mock_model.generate.side_effect = generate_side_effect
+
+    generated = generate_bgm(mock_model, test_config)
+
+    assert len(generated) == 1
+    assert mock_model.generate.call_count == 3
+    assert mock_model.set_generation_params.call_count == 3
+    written_tensor = mock_audio_write.call_args[0][1]
+    assert written_tensor.shape[-1] == int(test_config.duration * test_config.sample_rate)
 
 
 def test_generate_bgm_invalid_samples(mock_model):

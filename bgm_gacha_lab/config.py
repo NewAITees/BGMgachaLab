@@ -16,13 +16,20 @@ class GenerationConfig(BaseModel):
     model_name: str = Field(default="facebook/musicgen-stereo-medium")
     duration: float = Field(default=30.0, gt=0, description="Clip length in seconds")
     num_samples: int = Field(default=12, gt=0)
-    batch_size: int = Field(default=4, gt=0)
+    batch_size: int = Field(default=1, gt=0)
     temperature: float = Field(default=1.0, gt=0)
     top_k: int = Field(default=250)
     top_p: float = Field(default=0.0, ge=0, le=1)
     cfg_coef: float = Field(default=4.0, ge=0)
     base_prompt: str = Field(default="")
     output_dir: Path = Field(default=Path("outputs"))
+    filename_prefix: str = Field(default="lofi")
+    sample_rate: int = Field(default=32000, gt=0)
+    max_segment_duration: float = Field(
+        default=150.0,
+        gt=0,
+        description="Maximum per-call duration in seconds before audio is stitched",
+    )
 
 
 NIGHT_PROMPT = (

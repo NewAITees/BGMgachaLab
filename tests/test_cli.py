@@ -21,6 +21,9 @@ def test_cli_help():
     assert "--model-name" in result.stdout
     assert "--num-samples" in result.stdout
     assert "--device" in result.stdout
+    assert "--prompt" in result.stdout
+    assert "--tag" in result.stdout
+    assert "--max-segment-duration" in result.stdout
 
 
 @patch("bgm_gacha_lab.cli.load_model")
@@ -78,6 +81,12 @@ def test_cli_generate_with_overrides(mock_generate, mock_load_model):
             "10.0",
             "--temperature",
             "1.2",
+            "--prompt",
+            "custom piano techno prompt",
+            "--tag",
+            "Midnight Keys Drive",
+            "--max-segment-duration",
+            "45",
         ],
     )
 
@@ -90,6 +99,9 @@ def test_cli_generate_with_overrides(mock_generate, mock_load_model):
     assert config.batch_size == 1
     assert config.duration == 10.0
     assert config.temperature == 1.2
+    assert config.base_prompt == "custom piano techno prompt"
+    assert config.filename_prefix == "midnight_keys_drive"
+    assert config.max_segment_duration == 45
 
 
 @patch("bgm_gacha_lab.cli.load_model")
