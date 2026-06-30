@@ -7,7 +7,7 @@ from typing import Optional
 
 import typer
 
-from .config import PRESETS, GenerationConfig
+from .config import PRESETS
 from .generator import generate_bgm, load_model
 
 app = typer.Typer(help="Generate lofi/chill BGM batches via MusicGen")

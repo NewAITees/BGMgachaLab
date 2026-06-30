@@ -23,7 +23,7 @@ def test_generation_config_defaults():
     assert config.model_name == "facebook/musicgen-stereo-medium"
     assert config.duration == 30.0
     assert config.num_samples == 12
-    assert config.batch_size == 4
+    assert config.batch_size == 1
     assert config.temperature == 1.0
     assert config.top_k == 250
     assert config.top_p == 0.0

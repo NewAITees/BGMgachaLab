@@ -143,7 +143,7 @@ def main() -> None:
     print()
     print("=" * 80)
     print("All patterns generation complete!")
-    print(f"Output directory: outputs/piano_techno_set/")
+    print("Output directory: outputs/piano_techno_set/")
     print("=" * 80)
 
 

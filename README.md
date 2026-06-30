@@ -3,6 +3,21 @@
 ## プロジェクト概要
 BGMgachaLab は `musicgen` ベースのジェネレーティブ BGM ツールで、CLI からプリセットを選んで複数トラックをバッチ生成できます。`compat.py` で torch/transformers の細かな差異を吸収しつつ、`generator.py` が MusicGen モデルのダウンロードと推論を自動処理。`config.py` と `tests/` 以下の 26 テストケースによりプリセットや CLI 仕様が守られているため、GPU/CPU どちらでも安定したサンプル生成と再現性の高いワークフローを提供します。
 
+## 生成ルートの違い
+このリポジトリには、用途の違う 2 本の生成ルートがあります。
+
+| ルート | 入力 | モデル | 主なスクリプト | 出力 | 向いている用途 |
+|---|---|---|---|---|---|
+| MusicGen ルート | テキスト prompt | `facebook/musicgen-stereo-medium` など | `uv run bgm-gacha ...`, `scripts/generate_piano_techno_set.py` | `wav` | そのまま聴ける BGM を作る |
+| MIDI-LLM ルート | テキスト prompt | `slseanwu/MIDI-LLM_Llama-3.2-1B` | `scripts/run_boogie_batch.py`, `third_party/MIDI-LLM/generate_transformers.py` | `mid`、後処理で `musicxml` | 譜面化、演奏可能性評価、MIDI 編集 |
+
+要点:
+- `piano_techno_set` は MusicGen ルートなので、直接 `wav` が出ます。
+- `boogie_jazzy_rock` や `easy_listening` のバッチは MIDI-LLM ルートなので、まず `mid` が出ます。
+- 耳でそのまま確認したい BGM は MusicGen、譜面や演奏データとして扱いたいものは MIDI-LLM を使うのが基本です。
+
+詳しい整理は [docs/generation_routes.md](/home/perso/analysis/BGMgachaLab/docs/generation_routes.md) を参照してください。
+
 ### 主な特徴
 - `uv run bgm-gacha …` で即実行できるシンプルな CLI。
 - `night`/`cafe` などのプリセットに加え、温度・長さ・バッチサイズなどを柔軟指定。

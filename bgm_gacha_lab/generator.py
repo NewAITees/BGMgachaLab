@@ -11,9 +11,9 @@ from .config import GenerationConfig
 
 patch_torch_pytree()
 
-from audiocraft.data.audio import audio_write
-from audiocraft.models import MusicGen
-import torch
+from audiocraft.data.audio import audio_write  # noqa: E402
+from audiocraft.models import MusicGen  # noqa: E402
+import torch  # noqa: E402
 
 
 def load_model(model_name: str, device: str = "cuda") -> MusicGen:
