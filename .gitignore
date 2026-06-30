@@ -206,5 +206,23 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Local AI/dev tool state
+.claude/
+.codex
+.kiri/
+
+# Generated output artifacts
+/outputs/boogie_jazzy_rock_prompt_variants.txt
+/outputs/boogie_jazzy_rock_top10/
+/outputs/boogie_jazzy_rock_variants_120/
+/outputs/easy_listening_prompt_variants.txt
+/outputs/easy_listening_set_12/
+/outputs/piano_techno_set/
+
+/tasks/
+/third_party/MIDI-LLM/
+/third_party/anticipation/
+/third_party/**/.git/
+/third_party/**/*.egg-info/
 
 /outputs/*/*.wav
