@@ -212,6 +212,7 @@ __marimo__/
 .kiri/
 
 # Generated output artifacts
+/outputs/
 /outputs/boogie_jazzy_rock_prompt_variants.txt
 /outputs/boogie_jazzy_rock_top10/
 /outputs/boogie_jazzy_rock_variants_120/

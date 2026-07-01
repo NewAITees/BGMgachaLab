@@ -49,10 +49,15 @@
 - 今の repo には長尺 `wav` 生成の実績がある
 
 ### 「このアーティストっぽい」の扱い
-販売前提では、特定アーティスト名を直接プロンプトに入れる運用は避ける。
+この repo では、音楽ジャンルは主軸として保持し、その上にアーティスト要素を補助レイヤーとして加える。
 
-代わりに、次のような分解した表現に置き換える。
+運用ルール:
+- まずジャンルを書く
+- 必要ならアーティスト名も直接入れる
+- ただし、名前だけに依存せず特徴量も必ず併記する
+- アーティスト要素はジャンルを置き換えない
 
+併記する特徴量の例:
 - 音色
 - 和声傾向
 - テンポ感
@@ -60,10 +65,15 @@
 - 空間の広さ
 - グルーヴの強さ
 - 時代感
+- 展開の仕方
 
 例:
-- NG: `Nujabes っぽい`
-- OK: `warm jazzy hip-hop harmony, dusty drums, soft piano loop, late-night city mood`
+- 直接名 + 特徴量: `game music, Nobuo Uematsu, lyrical melody, clear harmonic motion, gentle emotional lift`
+- 直接名 + 特徴量: `ambient techno, Brian Eno, soft atmospheric drift, restrained development, spacious but controlled texture`
+- 特徴量のみ: `warm jazzy hip-hop harmony, dusty drums, soft piano loop, late-night city mood`
+
+参照:
+- [artist_style_layers.md](/home/perso/analysis/BGMgachaLab/docs/artist_style_layers.md)
 
 ### 販売向けの運用単位
 - `variation_pack/<style>/`
