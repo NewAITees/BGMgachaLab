@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>Endless BGM Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0a0a12;
+    --panel: #12121e;
+    --accent: #6ee7ff;
+    --accent2: #ff6ec7;
+    --text-dim: #8a8ab0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(110,231,255,0.12), transparent 60%),
+      radial-gradient(ellipse at 90% 110%, rgba(255,110,199,0.12), transparent 60%),
+      var(--bg);
+    color: #e8e8f5;
+    font-family: "Segoe UI", "Hiragino Sans", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+  }
+  h1 {
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 28px; }
+
+  .wheel-wrap {
+    position: relative;
+    width: 340px;
+    height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wheel-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      0 0 40px rgba(110,231,255,0.08),
+      inset 0 0 60px rgba(110,231,255,0.05);
+  }
+  #wheel {
+    --rotation: 0deg;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: rotate(var(--rotation));
+    transition: transform 2.2s cubic-bezier(.22,.61,.36,1);
+  }
+  .genre-label {
+    --angle: 0deg;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0; height: 0;
+    transform: translate(-50%,-50%) rotate(var(--angle)) translate(148px) rotate(calc(-1 * var(--angle)));
+  }
+  .genre-label .text {
+    display: inline-block;
+    transform: rotate(calc(-1 * var(--rotation)));
+    transition: transform 2.2s cubic-bezier(.22,.61,.36,1), color 0.6s, text-shadow 0.6s;
+    white-space: nowrap;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+  .genre-label.active .text {
+    color: var(--accent);
+    font-weight: 700;
+    text-shadow: 0 0 12px rgba(110,231,255,0.9);
+  }
+  .center-dot {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 16px 4px rgba(110,231,255,0.7);
+  }
+  .marker {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-right: 14px solid var(--accent2);
+    filter: drop-shadow(0 0 6px rgba(255,110,199,0.8));
+  }
+  .marker-label {
+    position: absolute;
+    right: -70px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+    writing-mode: horizontal-tb;
+  }
+
+  .now-playing {
+    margin-top: 28px;
+    width: min(560px, 92vw);
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 18px 22px;
+  }
+  .now-playing .genre-line {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .now-playing .bpm { color: var(--accent2); font-weight: 600; }
+  .now-playing .prompt {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  .controls { margin-top: 22px; display: flex; gap: 12px; }
+  button {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 26px;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #startBtn {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0a0a12;
+  }
+  #stopBtn {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  button:disabled { opacity: 0.35; cursor: default; }
+
+  .status-log {
+    margin-top: 22px;
+    width: min(560px, 92vw);
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    font-family: ui-monospace, monospace;
+  }
+  .status-log div { padding: 2px 0; }
+</style>
+</head>
+<body>
+  <h1>ENDLESS BGM PLAYER</h1>
+  <div class="subtitle">Stable Audio 3 × ComfyUI — 円環ジャンルダイヤル</div>
+
+  <div class="wheel-wrap">
+    <div class="wheel-ring"></div>
+    <div id="wheel"></div>
+    <div class="marker"></div>
+    <div class="marker-label">NOW</div>
+    <div class="center-dot"></div>
+  </div>
+
+  <div class="now-playing">
+    <div class="genre-line" id="genreLine">— 停止中 —</div>
+    <div class="bpm" id="bpmLine"></div>
+    <div class="prompt" id="promptLine"></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">▶ START</button>
+    <button id="stopBtn" disabled>■ STOP</button>
+  </div>
+
+  <div class="status-log" id="statusLog"></div>
+
+<script>
+const CROSSFADE_SECONDS = 15;
+const WHEEL_RADIUS_DEG_PER_GENRE = 45; // 360 / 8
+
+let genres = [];
+let ws = null;
+let audioCtx = null;
+let playing = false;
+let pendingQueue = [];
+let bufferCache = new Map();
+
+const wheelEl = document.getElementById("wheel");
+const genreLineEl = document.getElementById("genreLine");
+const bpmLineEl = document.getElementById("bpmLine");
+const promptLineEl = document.getElementById("promptLine");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const statusLog = document.getElementById("statusLog");
+
+function log(msg) {
+  const line = document.createElement("div");
+  line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
+  statusLog.prepend(line);
+  while (statusLog.children.length > 40) statusLog.removeChild(statusLog.lastChild);
+}
+
+async function loadGenres() {
+  const res = await fetch("/api/genres");
+  genres = await res.json();
+  wheelEl.innerHTML = "";
+  genres.forEach((g, i) => {
+    const label = document.createElement("div");
+    label.className = "genre-label";
+    label.style.setProperty("--angle", `${i * WHEEL_RADIUS_DEG_PER_GENRE}deg`);
+    label.dataset.name = g.name;
+    const text = document.createElement("span");
+    text.className = "text";
+    text.textContent = g.name;
+    label.appendChild(text);
+    wheelEl.appendChild(label);
+  });
+}
+
+function setActiveGenre(name) {
+  document.querySelectorAll(".genre-label").forEach((el) => {
+    el.classList.toggle("active", el.dataset.name === name);
+  });
+}
+
+function rotateWheelToPosition(position) {
+  // position(0..8) をそのままマーカー位置(3時/右側)へ持ってくるよう逆回転させる。
+  const targetAngle = -(position * WHEEL_RADIUS_DEG_PER_GENRE);
+  wheelEl.style.setProperty("--rotation", `${targetAngle}deg`);
+}
+
+function updateNowPlaying(track) {
+  const label = track.blend_fraction > 0.5
+    ? `${track.primary_genre} → ${track.secondary_genre}`
+    : track.primary_genre;
+  genreLineEl.textContent = label;
+  bpmLineEl.textContent = `BPM ${track.bpm}`;
+  promptLineEl.textContent = track.prompt;
+  setActiveGenre(track.primary_genre);
+  rotateWheelToPosition(track.position);
+}
+
+function connectWebSocket() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "track_ready") {
+      pendingQueue.push(msg.track);
+      preload(msg.track);
+      log(`生成完了: ${msg.track.primary_genre} (BPM ${msg.track.bpm})`);
+    } else if (msg.type === "error") {
+      log(`エラー: ${msg.message}`);
+    }
+  };
+  ws.onclose = () => log("WebSocket切断");
+}
+
+function notifyTrackStarted(id) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "track_started", id }));
+  }
+}
+
+async function loadBuffer(url) {
+  const resp = await fetch(url);
+  const arr = await resp.arrayBuffer();
+  return audioCtx.decodeAudioData(arr);
+}
+
+function preload(track) {
+  if (!bufferCache.has(track.id)) {
+    bufferCache.set(track.id, loadBuffer(track.url).catch((e) => {
+      log(`デコード失敗: ${e}`);
+      bufferCache.delete(track.id);
+      return null;
+    }));
+  }
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function playTrackWithCrossfade(track, buffer) {
+  const gain = audioCtx.createGain();
+  gain.connect(audioCtx.destination);
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(gain);
+
+  const now = audioCtx.currentTime + 0.15;
+  gain.gain.setValueAtTime(1, now);
+  source.start(now);
+  notifyTrackStarted(track.id);
+  updateNowPlaying(track);
+  log(`再生開始: ${track.primary_genre}`);
+
+  const duration = buffer.duration;
+  const fadeStart = Math.max(duration - CROSSFADE_SECONDS, 0);
+  gain.gain.setValueAtTime(1, now + fadeStart);
+  gain.gain.linearRampToValueAtTime(0, now + fadeStart + CROSSFADE_SECONDS);
+  source.stop(now + duration + 0.3);
+
+  await sleep(fadeStart * 1000);
+}
+
+async function playbackLoop() {
+  while (playing) {
+    if (pendingQueue.length === 0) {
+      await sleep(400);
+      continue;
+    }
+    const track = pendingQueue.shift();
+    if (pendingQueue.length > 0) preload(pendingQueue[0]);
+
+    let buffer = await (bufferCache.get(track.id) ?? loadBuffer(track.url));
+    bufferCache.delete(track.id);
+    if (!buffer) continue;
+
+    await playTrackWithCrossfade(track, buffer);
+  }
+}
+
+startBtn.addEventListener("click", async () => {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  await audioCtx.resume();
+  if (!ws || ws.readyState !== WebSocket.OPEN) connectWebSocket();
+  await fetch("/api/start", { method: "POST" });
+  playing = true;
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  genreLineEl.textContent = "— 生成中 —";
+  log("START");
+  playbackLoop();
+});
+
+stopBtn.addEventListener("click", async () => {
+  playing = false;
+  await fetch("/api/stop", { method: "POST" });
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  log("STOP");
+});
+
+loadGenres();
+</script>
+</body>
+</html>

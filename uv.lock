@@ -111,6 +111,8 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "audiocraft" },
+    { name = "fastapi" },
+    { name = "httpx" },
     { name = "huggingface-hub" },
     { name = "mido" },
     { name = "music21" },
@@ -121,6 +123,7 @@ dependencies = [
     { name = "torch" },
     { name = "transformers" },
     { name = "typer" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
@@ -132,6 +135,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "audiocraft", git = "https://github.com/facebookresearch/audiocraft.git" },
+    { name = "fastapi", specifier = "==0.121.1" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "huggingface-hub", specifier = "==0.34.4" },
     { name = "mido", specifier = "==1.3.3" },
     { name = "music21", specifier = "==9.9.1" },
@@ -144,6 +149,7 @@ requires-dist = [
     { name = "torch" },
     { name = "transformers", specifier = "==4.57.1" },
     { name = "typer", specifier = ">=0.9" },
+    { name = "uvicorn", specifier = "==0.38.0" },
 ]
 provides-extras = ["dev"]
 
@@ -681,7 +687,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [

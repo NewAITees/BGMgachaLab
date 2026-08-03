@@ -1,20 +1,23 @@
 # BGMgachaLab
 
 ## プロジェクト概要
-BGMgachaLab は `musicgen` ベースのジェネレーティブ BGM ツールで、CLI からプリセットを選んで複数トラックをバッチ生成できます。`compat.py` で torch/transformers の細かな差異を吸収しつつ、`generator.py` が MusicGen モデルのダウンロードと推論を自動処理。`config.py` と `tests/` 以下の 26 テストケースによりプリセットや CLI 仕様が守られているため、GPU/CPU どちらでも安定したサンプル生成と再現性の高いワークフローを提供します。
+BGMgachaLab はジェネレーティブ BGM 制作のためのツール群です。**現在の標準フローは ComfyUI Desktop 上で Stable Audio 3 を動かす方式**（[docs/comfy_stable_audio_guide.md](/home/perso/analysis/BGMgachaLab/docs/comfy_stable_audio_guide.md)）で、加えて `musicgen` ベースのCLIツール（旧方式）と `MIDI-LLM` ベースの演奏データ生成ルートを持っています。CLI側は `compat.py` で torch/transformers の細かな差異を吸収しつつ、`generator.py` が MusicGen モデルのダウンロードと推論を自動処理。`config.py` と `tests/` 以下の 26 テストケースによりプリセットや CLI 仕様が守られているため、GPU/CPU どちらでも安定したサンプル生成と再現性の高いワークフローを提供します。
 
 ## 生成ルートの違い
-このリポジトリには、用途の違う 2 本の生成ルートがあります。
+このリポジトリには、用途の違う 3 本の生成ルートがあります。
 
-| ルート | 入力 | モデル | 主なスクリプト | 出力 | 向いている用途 |
+| ルート | 入力 | モデル | 主な実体 | 出力 | 向いている用途 |
 |---|---|---|---|---|---|
-| MusicGen ルート | テキスト prompt | `facebook/musicgen-stereo-medium` など | `uv run bgm-gacha ...`, `scripts/generate_piano_techno_set.py` | `wav` | そのまま聴ける BGM を作る |
+| **Stable Audio (ComfyUI) ルート（現行の標準）** | 短文プロンプト（LLMで自動展開） | `stable_audio_3_medium` | `workflows/comfy_desktop/stable_audio_3_bgm.json` | `mp3` | 現行の標準フロー。GUIでの高品質BGM生成 |
+| MusicGen ルート（旧方式） | テキスト prompt | `facebook/musicgen-stereo-medium` など | `uv run bgm-gacha ...`, `scripts/generate_piano_techno_set.py` | `wav` | 旧CLIフロー。そのまま聴ける BGM を作る |
 | MIDI-LLM ルート | テキスト prompt | `slseanwu/MIDI-LLM_Llama-3.2-1B` | `scripts/run_boogie_batch.py`, `third_party/MIDI-LLM/generate_transformers.py` | `mid`、後処理で `musicxml` | 譜面化、演奏可能性評価、MIDI 編集 |
 
 要点:
-- `piano_techno_set` は MusicGen ルートなので、直接 `wav` が出ます。
+- 新規のBGM制作は Stable Audio (ComfyUI) ルートを第一候補とします。詳細は [docs/comfy_stable_audio_guide.md](/home/perso/analysis/BGMgachaLab/docs/comfy_stable_audio_guide.md) を参照。
+- 生成〜再生まで自動で回し続けたい場合は [Endless BGM Player](/home/perso/analysis/BGMgachaLab/docs/endless_bgm_player.md)（ジャンル円環表に沿って変化し続けるローカルWebアプリ）を使う。
+- `piano_techno_set` は MusicGen ルート（旧方式）なので、直接 `wav` が出ます。
 - `boogie_jazzy_rock` や `easy_listening` のバッチは MIDI-LLM ルートなので、まず `mid` が出ます。
-- 耳でそのまま確認したい BGM は MusicGen、譜面や演奏データとして扱いたいものは MIDI-LLM を使うのが基本です。
+- 譜面や演奏データとして扱いたいものは MIDI-LLM を使うのが基本です。
 
 詳しい整理は [docs/generation_routes.md](/home/perso/analysis/BGMgachaLab/docs/generation_routes.md) を参照してください。
 
