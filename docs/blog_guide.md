@@ -1,5 +1,10 @@
 # オープンソースAIで作曲しよう：MusicGenを使ったBGM自動生成 完全ガイド
 
+> **注記（旧フロー）**: このガイドはMusicGenベースの旧フロー向けです。
+> 現在の標準フローは ComfyUI Desktop + Stable Audio 3 です。
+> 最新の手順は [docs/comfy_stable_audio_guide.md](./comfy_stable_audio_guide.md) を参照してください。
+> 本ガイドの内容は旧CLIフローの記録として残しています。
+
 ## はじめに
 
 「AIで音楽を作れる」と聞いたことはありますか？実は、Metaが公開しているオープンソースの音楽生成AI「MusicGen」を使えば、誰でも無料でオリジナルのBGMを生成できます。
