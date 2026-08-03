@@ -71,12 +71,11 @@
     top: 50%;
     left: 50%;
     width: 0; height: 0;
-    transform: translate(-50%,-50%) rotate(var(--angle)) translate(148px) rotate(calc(-1 * var(--angle)));
+    transform: translate(-50%,-50%) rotate(var(--angle)) translate(148px);
   }
   .genre-label .text {
     display: inline-block;
-    transform: rotate(calc(-1 * var(--rotation)));
-    transition: transform 2.2s cubic-bezier(.22,.61,.36,1), color 0.6s, text-shadow 0.6s;
+    transition: color 0.6s, text-shadow 0.6s;
     white-space: nowrap;
     font-size: 0.72rem;
     color: var(--text-dim);
@@ -126,8 +125,15 @@
     border-radius: 14px;
     padding: 18px 22px;
   }
+  .now-playing .title-line {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.02em;
+  }
   .now-playing .genre-line {
-    font-size: 1.05rem;
+    margin-top: 2px;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--accent);
   }
@@ -159,6 +165,11 @@
     color: var(--text-dim);
     border: 1px solid rgba(255,255,255,0.15);
   }
+  #skipBtn {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(110,231,255,0.35);
+  }
   button:disabled { opacity: 0.35; cursor: default; }
 
   .status-log {
@@ -186,13 +197,15 @@
   </div>
 
   <div class="now-playing">
-    <div class="genre-line" id="genreLine">— 停止中 —</div>
+    <div class="title-line" id="titleLine">— 停止中 —</div>
+    <div class="genre-line" id="genreLine"></div>
     <div class="bpm" id="bpmLine"></div>
     <div class="prompt" id="promptLine"></div>
   </div>
 
   <div class="controls">
     <button id="startBtn">▶ START</button>
+    <button id="skipBtn" disabled>⏭ SKIP</button>
     <button id="stopBtn" disabled>■ STOP</button>
   </div>
 
@@ -200,7 +213,7 @@
 
 <script>
 const CROSSFADE_SECONDS = 15;
-const WHEEL_RADIUS_DEG_PER_GENRE = 45; // 360 / 8
+let degPerGenre = 45; // 360 / ジャンル数。loadGenres()で実際の数に合わせて再計算する
 
 let genres = [];
 let ws = null;
@@ -208,12 +221,16 @@ let audioCtx = null;
 let playing = false;
 let pendingQueue = [];
 let bufferCache = new Map();
+let activeAudioNodes = new Set();
+let skipResolver = null;
 
 const wheelEl = document.getElementById("wheel");
+const titleLineEl = document.getElementById("titleLine");
 const genreLineEl = document.getElementById("genreLine");
 const bpmLineEl = document.getElementById("bpmLine");
 const promptLineEl = document.getElementById("promptLine");
 const startBtn = document.getElementById("startBtn");
+const skipBtn = document.getElementById("skipBtn");
 const stopBtn = document.getElementById("stopBtn");
 const statusLog = document.getElementById("statusLog");
 
@@ -227,11 +244,12 @@ function log(msg) {
 async function loadGenres() {
   const res = await fetch("/api/genres");
   genres = await res.json();
+  degPerGenre = 360 / genres.length;
   wheelEl.innerHTML = "";
   genres.forEach((g, i) => {
     const label = document.createElement("div");
     label.className = "genre-label";
-    label.style.setProperty("--angle", `${i * WHEEL_RADIUS_DEG_PER_GENRE}deg`);
+    label.style.setProperty("--angle", `${i * degPerGenre}deg`);
     label.dataset.name = g.name;
     const text = document.createElement("span");
     text.className = "text";
@@ -247,17 +265,31 @@ function setActiveGenre(name) {
   });
 }
 
-function rotateWheelToPosition(position) {
-  // position(0..8) をそのままマーカー位置(3時/右側)へ持ってくるよう逆回転させる。
-  const targetAngle = -(position * WHEEL_RADIUS_DEG_PER_GENRE);
+let continuousPosition = null; // 8で折り返さず、一周ごとに増え続ける値
+let lastRawPosition = null;
+
+function rotateWheelToPosition(rawPosition) {
+  // rawPosition はバックエンドから来る 0..genres.length の剰余値。一周またぐ瞬間の
+  // 逆戻りアニメーションを避けるため、ここで折り返さない角度に積算し直す。
+  if (lastRawPosition === null) {
+    continuousPosition = rawPosition;
+  } else {
+    let delta = rawPosition - lastRawPosition;
+    if (delta < -genres.length / 2) delta += genres.length; // 一周ラップをまたいだとみなす
+    continuousPosition += delta;
+  }
+  lastRawPosition = rawPosition;
+
+  const targetAngle = -(continuousPosition * degPerGenre);
   wheelEl.style.setProperty("--rotation", `${targetAngle}deg`);
 }
 
 function updateNowPlaying(track) {
-  const label = track.blend_fraction > 0.5
+  const genreLabel = track.blend_fraction > 0.5
     ? `${track.primary_genre} → ${track.secondary_genre}`
     : track.primary_genre;
-  genreLineEl.textContent = label;
+  titleLineEl.textContent = track.title || genreLabel;
+  genreLineEl.textContent = genreLabel;
   bpmLineEl.textContent = `BPM ${track.bpm}`;
   promptLineEl.textContent = track.prompt;
   setActiveGenre(track.primary_genre);
@@ -318,50 +350,100 @@ async function playTrackWithCrossfade(track, buffer) {
   updateNowPlaying(track);
   log(`再生開始: ${track.primary_genre}`);
 
+  const nodeEntry = { source, gain };
+  activeAudioNodes.add(nodeEntry);
+  source.onended = () => activeAudioNodes.delete(nodeEntry);
+
   const duration = buffer.duration;
   const fadeStart = Math.max(duration - CROSSFADE_SECONDS, 0);
   gain.gain.setValueAtTime(1, now + fadeStart);
   gain.gain.linearRampToValueAtTime(0, now + fadeStart + CROSSFADE_SECONDS);
   source.stop(now + duration + 0.3);
 
-  await sleep(fadeStart * 1000);
+  await new Promise((resolve) => {
+    const timer = setTimeout(resolve, fadeStart * 1000);
+    skipResolver = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+  });
+  skipResolver = null;
 }
 
-async function playbackLoop() {
-  while (playing) {
-    if (pendingQueue.length === 0) {
-      await sleep(400);
-      continue;
+function hardStopAudio() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  activeAudioNodes.forEach(({ source, gain }) => {
+    try {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.05);
+      source.stop(now + 0.06);
+    } catch {
+      // 既に停止済みのソースは無視する
     }
-    const track = pendingQueue.shift();
-    if (pendingQueue.length > 0) preload(pendingQueue[0]);
+  });
+  activeAudioNodes.clear();
+}
 
-    let buffer = await (bufferCache.get(track.id) ?? loadBuffer(track.url));
-    bufferCache.delete(track.id);
-    if (!buffer) continue;
+let loopRunning = false;
 
-    await playTrackWithCrossfade(track, buffer);
+async function playbackLoop() {
+  if (loopRunning) return; // 二重起動防止（曲が被って聞こえる原因になるため）
+  loopRunning = true;
+  try {
+    while (playing) {
+      if (pendingQueue.length === 0) {
+        await sleep(400);
+        continue;
+      }
+      const track = pendingQueue.shift();
+      if (pendingQueue.length > 0) preload(pendingQueue[0]);
+
+      let buffer = await (bufferCache.get(track.id) ?? loadBuffer(track.url));
+      bufferCache.delete(track.id);
+      if (!buffer) continue;
+
+      await playTrackWithCrossfade(track, buffer);
+    }
+  } finally {
+    loopRunning = false;
   }
 }
 
 startBtn.addEventListener("click", async () => {
+  if (playing) return; // 連打・二重発火防止
+  playing = true;
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  skipBtn.disabled = false;
+  titleLineEl.textContent = "— 生成中 —";
+  genreLineEl.textContent = "";
+  log("START");
+
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   await audioCtx.resume();
   if (!ws || ws.readyState !== WebSocket.OPEN) connectWebSocket();
   await fetch("/api/start", { method: "POST" });
-  playing = true;
-  startBtn.disabled = true;
-  stopBtn.disabled = false;
-  genreLineEl.textContent = "— 生成中 —";
-  log("START");
   playbackLoop();
+});
+
+skipBtn.addEventListener("click", () => {
+  if (!playing) return;
+  log("SKIP");
+  hardStopAudio();
+  if (skipResolver) skipResolver();
 });
 
 stopBtn.addEventListener("click", async () => {
   playing = false;
+  hardStopAudio();
   await fetch("/api/stop", { method: "POST" });
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  skipBtn.disabled = true;
+  titleLineEl.textContent = "— 停止中 —";
+  genreLineEl.textContent = "";
   log("STOP");
 });
 

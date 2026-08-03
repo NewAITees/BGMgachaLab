@@ -1,0 +1,13 @@
+{
+  "name": "8bit",
+  "instruments": ["blocky square lead", "chunky 8-bit bassline", "simple 4-bit drum kit"],
+  "mood": ["nostalgic", "adventurous", "pixelated"],
+  "bpm_range": [110, 130],
+  "extra_vocab": [
+    "retro game overworld theme feel",
+    "looping fanfare motif",
+    "8-bit coin pickup blip",
+    "classic console reverb",
+    "chunky pulse wave harmony"
+  ]
+}

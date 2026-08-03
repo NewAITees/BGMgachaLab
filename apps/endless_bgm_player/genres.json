@@ -1,0 +1,132 @@
+[
+  {
+    "name": "Ambient Drift",
+    "instruments": ["soft evolving pads", "distant airy textures", "sparse chime accents"],
+    "mood": ["ethereal", "spacious", "weightless"],
+    "bpm_range": [70, 78],
+    "extra_vocab": [
+      "slow tape wobble",
+      "field recording texture",
+      "long reverb tail",
+      "granular shimmer",
+      "soft wind noise"
+    ]
+  },
+  {
+    "name": "Lofi Chillhop",
+    "instruments": ["warm rhodes piano", "dusty boom-bap drums", "soft upright bass"],
+    "mood": ["nostalgic", "mellow", "cozy"],
+    "bpm_range": [72, 80],
+    "extra_vocab": [
+      "vinyl crackle",
+      "tape hiss",
+      "muffled kick",
+      "lo-fi bitcrush",
+      "rainy window ambience"
+    ]
+  },
+  {
+    "name": "Jazzy Cafe",
+    "instruments": ["soft jazz piano chords", "brushed snare drums", "walking upright bass"],
+    "mood": ["warm", "relaxed", "intimate"],
+    "bpm_range": [85, 95],
+    "extra_vocab": [
+      "light cafe chatter",
+      "soft ride cymbal swing",
+      "muted trumpet accent",
+      "gentle piano pedal noise",
+      "coffee shop ambience"
+    ]
+  },
+  {
+    "name": "Bossa Downtempo",
+    "instruments": ["nylon string guitar", "soft latin percussion", "airy flute accents"],
+    "mood": ["breezy", "laid-back", "sun-warmed"],
+    "bpm_range": [90, 100],
+    "extra_vocab": [
+      "shaker texture",
+      "soft conga hits",
+      "ocean breeze ambience",
+      "warm analog saturation",
+      "gentle guiro scrape"
+    ]
+  },
+  {
+    "name": "Deep Chill House",
+    "instruments": ["warm sub bass", "soft four-on-the-floor kick", "mellow analog chords"],
+    "mood": ["smooth", "hypnotic", "warm"],
+    "bpm_range": [100, 112],
+    "extra_vocab": [
+      "soft filtered hi-hats",
+      "deep vinyl warmth",
+      "subtle sidechain pump",
+      "warm analog hum",
+      "distant vocal chop"
+    ]
+  },
+  {
+    "name": "Chill Techno",
+    "instruments": ["minimal percussive pulse", "subtle arpeggiated synth", "understated kick pattern"],
+    "mood": ["focused", "understated", "hypnotic"],
+    "bpm_range": [112, 122],
+    "extra_vocab": [
+      "metallic percussion click",
+      "soft modular blips",
+      "subtle white noise sweep",
+      "muted clap texture",
+      "analog sequencer hum"
+    ]
+  },
+  {
+    "name": "Nu Disco Groove",
+    "instruments": ["funky muted guitar", "warm analog bassline", "bright rimshot percussion"],
+    "mood": ["groovy", "upbeat", "sun-drenched"],
+    "bpm_range": [110, 120],
+    "extra_vocab": [
+      "vintage disco strings",
+      "warm vinyl sheen",
+      "subtle vocoder chop",
+      "groovy cowbell hit",
+      "analog flanger sweep"
+    ]
+  },
+  {
+    "name": "Synth Dreamscape",
+    "instruments": ["lush analog synth pads", "retro arpeggios", "soft glassy leads"],
+    "mood": ["dreamy", "nostalgic-futuristic", "hazy"],
+    "bpm_range": [90, 100],
+    "extra_vocab": [
+      "warm chorus shimmer",
+      "retro cassette warble",
+      "soft neon glow texture",
+      "gentle synth swell",
+      "vintage delay tail"
+    ]
+  },
+  {
+    "name": "Acoustic Chill",
+    "instruments": ["soft acoustic guitar", "gentle felt piano", "light hand percussion"],
+    "mood": ["organic", "intimate", "warm"],
+    "bpm_range": [72, 80],
+    "extra_vocab": [
+      "room ambience",
+      "soft finger noise on strings",
+      "warm wood resonance",
+      "gentle string squeak",
+      "quiet room tone"
+    ]
+  },
+  {
+    "name": "Piano Nocturne",
+    "instruments": ["solo felt piano", "soft sustained pedal tones", "distant string swell"],
+    "mood": ["nocturnal", "tender", "contemplative"],
+    "bpm_range": [70, 78],
+    "extra_vocab": [
+      "soft piano key noise",
+      "warm room reverb",
+      "gentle page-turn rustle",
+      "distant night ambience",
+      "subtle tape saturation"
+    ]
+  }
+]
