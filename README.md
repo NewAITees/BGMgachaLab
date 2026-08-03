@@ -1,5 +1,7 @@
 # BGMgachaLab
 
+> **ComfyUIのポートに注意**: このマシンのComfyUIはデフォルトの `8188` ではなく **`18231`** で動いています。詳細は [AGENTS.md](/home/perso/analysis/BGMgachaLab/AGENTS.md) を参照してください。
+
 ## プロジェクト概要
 BGMgachaLab はジェネレーティブ BGM 制作のためのツール群です。**現在の標準フローは ComfyUI Desktop 上で Stable Audio 3 を動かす方式**（[docs/comfy_stable_audio_guide.md](/home/perso/analysis/BGMgachaLab/docs/comfy_stable_audio_guide.md)）で、加えて `musicgen` ベースのCLIツール（旧方式）と `MIDI-LLM` ベースの演奏データ生成ルートを持っています。CLI側は `compat.py` で torch/transformers の細かな差異を吸収しつつ、`generator.py` が MusicGen モデルのダウンロードと推論を自動処理。`config.py` と `tests/` 以下の 26 テストケースによりプリセットや CLI 仕様が守られているため、GPU/CPU どちらでも安定したサンプル生成と再現性の高いワークフローを提供します。
 
