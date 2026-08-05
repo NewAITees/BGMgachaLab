@@ -224,6 +224,7 @@ __marimo__/
 /third_party/MIDI-LLM/
 /third_party/anticipation/
 /third_party/**/.git/
+/external/
 /third_party/**/*.egg-info/
 
 /outputs/*/*.wav
