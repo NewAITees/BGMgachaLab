@@ -41,7 +41,7 @@ from genre_circle import (
     Genre,
     advance_position,
     build_prompt,
-    insert_pending_genres,
+    insert_genre,
     mark_genre_used,
 )
 from genre_interpreter import GenreInterpretationError, interpret_genre_text
@@ -119,9 +119,6 @@ async def generation_loop() -> None:
             await asyncio.sleep(1.0)
             continue
 
-        # pending_genres/ に外部から差し込まれたジャンルがあれば円環に反映する。
-        state.position = insert_pending_genres(state.position)
-
         result = build_prompt(
             state.position, duration_seconds=DURATION_SECONDS, bpm_target=state.bpm_target
         )
@@ -143,7 +140,7 @@ async def generation_loop() -> None:
             await asyncio.sleep(3.0)
             continue
 
-        # 生成に成功して初めて、差し込みジャンルを永続化してpendingファイルを消す。
+        # 生成に成功して初めて、差し込みジャンルを genres.json へ永続化する。
         mark_genre_used(result.primary_genre)
 
         track_id = uuid.uuid4().hex
@@ -226,6 +223,9 @@ async def api_genres_inject(payload: GenreInjectPayload) -> dict[str, Any]:
     except GenreInterpretationError as exc:
         return {"ok": False, "message": str(exc)}
 
+    if any(g.name == genre.name for g in GENRES):
+        return {"ok": False, "message": f"「{genre.name}」は既に円環にあります"}
+
     slug = slugify(genre.name)
     path = PENDING_DIR / f"{slug}.json"
     suffix = 2
@@ -234,13 +234,13 @@ async def api_genres_inject(payload: GenreInjectPayload) -> dict[str, Any]:
         suffix += 1
     path.write_text(json.dumps(genre.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    if len(GENRES) >= MAX_GENRES:
-        note = f"（{MAX_GENRES}個に達しているため、現在位置から最も遠く・最も古いジャンルと入れ替わります）"
-    else:
-        note = "（次回生成以降に反映）"
+    at_cap = len(GENRES) >= MAX_GENRES
+    state.position = insert_genre(genre, state.position, path)
+
+    note = "（12個に達していたため、最も遠く・最も古いジャンルと入れ替わりました）" if at_cap else ""
     return {
         "ok": True,
-        "message": f"「{genre.name}」を待機ジャンルに追加しました{note}",
+        "message": f"「{genre.name}」を円環に追加しました{note}",
         "genre": genre.to_dict(),
     }
 

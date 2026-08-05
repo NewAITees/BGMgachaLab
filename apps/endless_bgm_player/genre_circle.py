@@ -5,11 +5,11 @@
 プロンプトを変化させる。同じ位置でも毎回まったく同じ文にならないよう、
 ジャンルごとのランダム語彙プールから追加の記述語を混ぜ込む。
 
-ジャンル一覧は genres.json を正本として読み込む。加えて pending_genres/ に
-ジャンル定義ファイル(.json)を置くことで、外部から新しいジャンルを円環に
-差し込める。差し込み位置は「現在の再生位置から円環上で最も遠い場所」に
-挿入される。差し込まれたジャンルは、実際に一度生成に使われるまでは
-genres.json へ反映されず、pending_genres/ のファイルも消されない。
+ジャンル一覧は genres.json を正本として読み込む。加えて、UIからのジャンル追加
+(自由入力 -> Ollama解釈)は insert_genre() を通じて即座に円環へ反映される。
+挿入位置は「現在の再生位置から円環上で最も遠い場所」。挿入されたジャンルの
+定義は pending_genres/ にアーカイブとして書き込まれるが、これは記録用であり
+アプリはこのディレクトリを読み込まない。
 """
 
 from __future__ import annotations
@@ -65,8 +65,8 @@ MAX_GENRES = 12
 BPM_FLOOR = 70
 BPM_CEIL = 190
 
-# 差し込み済みだがまだ一度も生成に使われていないジャンル名 -> 出所ファイルパス。
-# 一度生成に使われたら genres.json へ永続化し、このファイルは削除する。
+# 挿入済みだがまだ一度も生成に使われていないジャンル名 -> アーカイブファイルパス。
+# 一度生成に使われたら genres.json へ永続化する(ファイルは消さず残す)。
 _pending_file_by_name: dict[str, Path] = {}
 
 # ジャンルの挿入順(古いほど値が小さい)。12個の上限に達した状態で新規挿入する際、
@@ -129,57 +129,50 @@ def _farthest_genre_index_for_replacement(current_position: float) -> int:
     return best_index
 
 
-def insert_pending_genres(current_position: float) -> float:
-    """pending_genres/ にある未処理のジャンル定義を円環へ差し込む。
+def insert_genre(genre: Genre, current_position: float, archive_path: Path) -> float:
+    """ジャンルを即座に円環へ挿入する(PUSH)。
 
-    複数ある場合は、都度その時点で現在位置から最も遠い隙間に順番に挿入する。
-    円環のジャンル数が変わっても現在位置の実角度がずれないよう、position を
-    比例して再スケールして返す。
+    現在位置から円環上で最も遠い隙間に挿入する。円環のジャンル数が変わっても
+    現在位置の実角度がずれないよう、position を比例して再スケールして返す。
     既に12個(MAX_GENRES)に達している場合は、円環の大きさを増やさず、
     現在位置から最も遠く・最も古いジャンルと入れ替える。
     """
     global _next_seq
 
     position = current_position
-    pending_files = sorted(PENDING_DIR.glob("*.json"))
-    for path in pending_files:
-        if path.name in {p.name for p in _pending_file_by_name.values()}:
-            continue
-        try:
-            genre = Genre.from_dict(json.loads(path.read_text(encoding="utf-8")))
-        except (OSError, ValueError, KeyError):
-            continue
-        if any(g.name == genre.name for g in GENRES):
-            # 既に(過去の実行で)取り込み済みの名前は二重挿入しない。
-            continue
+    if any(g.name == genre.name for g in GENRES):
+        # 既に取り込み済みの名前は二重挿入しない。
+        return position
 
-        if len(GENRES) >= MAX_GENRES:
-            replace_index = _farthest_genre_index_for_replacement(position)
-            removed = GENRES[replace_index]
-            GENRES[replace_index] = genre
-            _genre_seq.pop(removed.name, None)
-            _pending_file_by_name.pop(removed.name, None)
-        else:
-            n_before = len(GENRES)
-            index = _farthest_gap_index(position)
-            GENRES.insert(index, genre)
-            n_after = len(GENRES)
-            position = position * (n_after / n_before)
+    if len(GENRES) >= MAX_GENRES:
+        replace_index = _farthest_genre_index_for_replacement(position)
+        removed = GENRES[replace_index]
+        GENRES[replace_index] = genre
+        _genre_seq.pop(removed.name, None)
+        _pending_file_by_name.pop(removed.name, None)
+    else:
+        n_before = len(GENRES)
+        index = _farthest_gap_index(position)
+        GENRES.insert(index, genre)
+        n_after = len(GENRES)
+        position = position * (n_after / n_before)
 
-        _genre_seq[genre.name] = _next_seq
-        _next_seq += 1
-        _pending_file_by_name[genre.name] = path
+    _genre_seq[genre.name] = _next_seq
+    _next_seq += 1
+    _pending_file_by_name[genre.name] = archive_path
 
     return position
 
 
 def mark_genre_used(name: str) -> None:
-    """このジャンルが実際に生成へ使われたら、genres.json へ永続化しpendingを消す。"""
-    path = _pending_file_by_name.pop(name, None)
-    if path is None:
+    """このジャンルが実際に生成へ使われたら、genres.json へ永続化する。
+
+    アーカイブファイル(pending_genres/ 配下)は記録として残し、削除しない。
+    """
+    if name not in _pending_file_by_name:
         return
+    _pending_file_by_name.pop(name, None)
     _save_genres()
-    path.unlink(missing_ok=True)
 
 
 def advance_position(pos: float, step: float = 0.25, jitter: float = 0.3) -> float:
