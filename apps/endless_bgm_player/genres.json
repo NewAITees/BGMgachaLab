@@ -1,9 +1,20 @@
 [
   {
     "name": "Ambient Drift",
-    "instruments": ["soft evolving pads", "distant airy textures", "sparse chime accents"],
-    "mood": ["ethereal", "spacious", "weightless"],
-    "bpm_range": [70, 78],
+    "instruments": [
+      "soft evolving pads",
+      "distant airy textures",
+      "sparse chime accents"
+    ],
+    "mood": [
+      "ethereal",
+      "spacious",
+      "weightless"
+    ],
+    "bpm_range": [
+      70,
+      78
+    ],
     "extra_vocab": [
       "slow tape wobble",
       "field recording texture",
@@ -14,9 +25,20 @@
   },
   {
     "name": "Lofi Chillhop",
-    "instruments": ["warm rhodes piano", "dusty boom-bap drums", "soft upright bass"],
-    "mood": ["nostalgic", "mellow", "cozy"],
-    "bpm_range": [72, 80],
+    "instruments": [
+      "warm rhodes piano",
+      "dusty boom-bap drums",
+      "soft upright bass"
+    ],
+    "mood": [
+      "nostalgic",
+      "mellow",
+      "cozy"
+    ],
+    "bpm_range": [
+      72,
+      80
+    ],
     "extra_vocab": [
       "vinyl crackle",
       "tape hiss",
@@ -27,9 +49,20 @@
   },
   {
     "name": "Jazzy Cafe",
-    "instruments": ["soft jazz piano chords", "brushed snare drums", "walking upright bass"],
-    "mood": ["warm", "relaxed", "intimate"],
-    "bpm_range": [85, 95],
+    "instruments": [
+      "soft jazz piano chords",
+      "brushed snare drums",
+      "walking upright bass"
+    ],
+    "mood": [
+      "warm",
+      "relaxed",
+      "intimate"
+    ],
+    "bpm_range": [
+      85,
+      95
+    ],
     "extra_vocab": [
       "light cafe chatter",
       "soft ride cymbal swing",
@@ -40,9 +73,20 @@
   },
   {
     "name": "Bossa Downtempo",
-    "instruments": ["nylon string guitar", "soft latin percussion", "airy flute accents"],
-    "mood": ["breezy", "laid-back", "sun-warmed"],
-    "bpm_range": [90, 100],
+    "instruments": [
+      "nylon string guitar",
+      "soft latin percussion",
+      "airy flute accents"
+    ],
+    "mood": [
+      "breezy",
+      "laid-back",
+      "sun-warmed"
+    ],
+    "bpm_range": [
+      90,
+      100
+    ],
     "extra_vocab": [
       "shaker texture",
       "soft conga hits",
@@ -52,49 +96,152 @@
     ]
   },
   {
-    "name": "Deep Chill House",
-    "instruments": ["warm sub bass", "soft four-on-the-floor kick", "mellow analog chords"],
-    "mood": ["smooth", "hypnotic", "warm"],
-    "bpm_range": [100, 112],
+    "name": "City Pop Cruise",
+    "instruments": [
+      "Smooth electric piano",
+      "Funky bass line",
+      "Layered synthesizers",
+      "Glistening saxophone",
+      "Tropical percussion"
+    ],
+    "mood": [
+      "Nostalgic",
+      "Upbeat",
+      "Dreamy",
+      "Cool",
+      "Carefree"
+    ],
+    "bpm_range": [
+      100,
+      125
+    ],
     "extra_vocab": [
-      "soft filtered hi-hats",
-      "deep vinyl warmth",
-      "subtle sidechain pump",
-      "warm analog hum",
-      "distant vocal chop"
+      "Ocean breeze feel",
+      "Japanese summer night",
+      "Neon glow ambiance",
+      "Retro-funk vibes",
+      "Late evening cruising"
     ]
   },
   {
-    "name": "Chill Techno",
-    "instruments": ["minimal percussive pulse", "subtle arpeggiated synth", "understated kick pattern"],
-    "mood": ["focused", "understated", "hypnotic"],
-    "bpm_range": [112, 122],
+    "name": "8bit",
+    "instruments": [
+      "blocky square lead",
+      "chunky 8-bit bassline",
+      "simple 4-bit drum kit"
+    ],
+    "mood": [
+      "nostalgic",
+      "adventurous",
+      "pixelated"
+    ],
+    "bpm_range": [
+      110,
+      130
+    ],
     "extra_vocab": [
-      "metallic percussion click",
-      "soft modular blips",
-      "subtle white noise sweep",
-      "muted clap texture",
-      "analog sequencer hum"
+      "retro game overworld theme feel",
+      "looping fanfare motif",
+      "8-bit coin pickup blip",
+      "classic console reverb",
+      "chunky pulse wave harmony"
     ]
   },
   {
-    "name": "Nu Disco Groove",
-    "instruments": ["funky muted guitar", "warm analog bassline", "bright rimshot percussion"],
-    "mood": ["groovy", "upbeat", "sun-drenched"],
-    "bpm_range": [110, 120],
+    "name": "Ambient Modular Electronica",
+    "instruments": [
+      "Washed-out synths",
+      "Granular pads",
+      "Deep sub bass",
+      "Rhythmic percussive clicks",
+      "Filtered noise textures"
+    ],
+    "mood": [
+      "Contemplative",
+      "Ethereal",
+      "Hypnotic",
+      "Introspective"
+    ],
+    "bpm_range": [
+      70,
+      120
+    ],
     "extra_vocab": [
-      "vintage disco strings",
-      "warm vinyl sheen",
-      "subtle vocoder chop",
-      "groovy cowbell hit",
-      "analog flanger sweep"
+      "Field recordings",
+      "Drone undertones",
+      "Glitch elements",
+      "Sweeping arpeggios",
+      "Cinematic tension build"
+    ]
+  },
+  {
+    "name": "Chiptune",
+    "instruments": [
+      "square wave lead melody",
+      "triangle wave bassline",
+      "noise-channel percussion"
+    ],
+    "mood": [
+      "playful",
+      "energetic",
+      "retro-digital"
+    ],
+    "bpm_range": [
+      140,
+      160
+    ],
+    "extra_vocab": [
+      "8-bit arpeggio flourish",
+      "NES-style pulse width modulation",
+      "crunchy bitcrushed hats",
+      "retro console startup blip",
+      "chiptune vibrato lead"
+    ]
+  },
+  {
+    "name": "Sci-Fi Operatic Fantasy",
+    "instruments": [
+      "lush synth pads",
+      "orchestral strings",
+      "choral vocals (Latin)",
+      "processed brass hits",
+      "gated reverb drums"
+    ],
+    "mood": [
+      "epic",
+      "melancholic",
+      "mysterious",
+      "awe-inspiring"
+    ],
+    "bpm_range": [
+      80,
+      120
+    ],
+    "extra_vocab": [
+      "dramatic build-ups",
+      "cinematic transitions",
+      "future folklore",
+      "sweeping harmonies",
+      "cosmic atmosphere",
+      "regal scope"
     ]
   },
   {
     "name": "Synth Dreamscape",
-    "instruments": ["lush analog synth pads", "retro arpeggios", "soft glassy leads"],
-    "mood": ["dreamy", "nostalgic-futuristic", "hazy"],
-    "bpm_range": [90, 100],
+    "instruments": [
+      "lush analog synth pads",
+      "retro arpeggios",
+      "soft glassy leads"
+    ],
+    "mood": [
+      "dreamy",
+      "nostalgic-futuristic",
+      "hazy"
+    ],
+    "bpm_range": [
+      90,
+      100
+    ],
     "extra_vocab": [
       "warm chorus shimmer",
       "retro cassette warble",
@@ -105,9 +252,20 @@
   },
   {
     "name": "Acoustic Chill",
-    "instruments": ["soft acoustic guitar", "gentle felt piano", "light hand percussion"],
-    "mood": ["organic", "intimate", "warm"],
-    "bpm_range": [72, 80],
+    "instruments": [
+      "soft acoustic guitar",
+      "gentle felt piano",
+      "light hand percussion"
+    ],
+    "mood": [
+      "organic",
+      "intimate",
+      "warm"
+    ],
+    "bpm_range": [
+      72,
+      80
+    ],
     "extra_vocab": [
       "room ambience",
       "soft finger noise on strings",
@@ -118,9 +276,20 @@
   },
   {
     "name": "Piano Nocturne",
-    "instruments": ["solo felt piano", "soft sustained pedal tones", "distant string swell"],
-    "mood": ["nocturnal", "tender", "contemplative"],
-    "bpm_range": [70, 78],
+    "instruments": [
+      "solo felt piano",
+      "soft sustained pedal tones",
+      "distant string swell"
+    ],
+    "mood": [
+      "nocturnal",
+      "tender",
+      "contemplative"
+    ],
+    "bpm_range": [
+      70,
+      78
+    ],
     "extra_vocab": [
       "soft piano key noise",
       "warm room reverb",
