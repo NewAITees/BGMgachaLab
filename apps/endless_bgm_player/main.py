@@ -26,12 +26,25 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from comfy_client import ComfyClient
-from genre_circle import GENRES, advance_position, build_prompt, insert_pending_genres, mark_genre_used
+from genre_circle import (
+    BPM_CEIL,
+    BPM_FLOOR,
+    GENRES,
+    MAX_GENRES,
+    PENDING_DIR,
+    Genre,
+    advance_position,
+    build_prompt,
+    insert_pending_genres,
+    mark_genre_used,
+)
+from genre_interpreter import GenreInterpretationError, interpret_genre_text
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("endless_bgm_player")
@@ -53,6 +66,24 @@ BUFFER_TARGET = 2  # 先読みは最大2曲。生成(約20秒)は再生(120秒)�
 STEP = 0.25
 JITTER = 0.3
 
+BPM_STATE_PATH = APP_DIR / "bpm_state.json"
+
+
+def _load_bpm_target() -> int | None:
+    if not BPM_STATE_PATH.exists():
+        return None
+    try:
+        data = json.loads(BPM_STATE_PATH.read_text(encoding="utf-8"))
+        target = data.get("target")
+        return int(target) if target is not None else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _save_bpm_target(target: int | None) -> None:
+    BPM_STATE_PATH.write_text(json.dumps({"target": target}) + "\n", encoding="utf-8")
+
+
 class AppState:
     def __init__(self) -> None:
         self.running = asyncio.Event()
@@ -63,6 +94,7 @@ class AppState:
         self.websockets: set[WebSocket] = set()
         self.comfy_client: ComfyClient | None = None
         self.generation_task: asyncio.Task[None] | None = None
+        self.bpm_target: int | None = _load_bpm_target()
 
 
 state = AppState()
@@ -90,7 +122,9 @@ async def generation_loop() -> None:
         # pending_genres/ に外部から差し込まれたジャンルがあれば円環に反映する。
         state.position = insert_pending_genres(state.position)
 
-        result = build_prompt(state.position, duration_seconds=DURATION_SECONDS)
+        result = build_prompt(
+            state.position, duration_seconds=DURATION_SECONDS, bpm_target=state.bpm_target
+        )
         logger.info(
             "generating: pos=%.3f genre=%s bpm=%s title=%s",
             state.position,
@@ -155,6 +189,60 @@ async def index() -> FileResponse:
 @app.get("/api/genres")
 async def api_genres() -> list[dict[str, Any]]:
     return [{"name": g.name, "bpm_range": g.bpm_range} for g in GENRES]
+
+
+class BpmTargetPayload(BaseModel):
+    target: int | None = None
+
+
+@app.get("/api/bpm")
+async def api_bpm_get() -> dict[str, Any]:
+    return {"bpm_target": state.bpm_target}
+
+
+@app.post("/api/bpm")
+async def api_bpm(payload: BpmTargetPayload) -> dict[str, Any]:
+    if payload.target is not None:
+        if not (BPM_FLOOR <= payload.target <= BPM_CEIL):
+            raise HTTPException(400, f"target must be between {BPM_FLOOR} and {BPM_CEIL}")
+    state.bpm_target = payload.target
+    _save_bpm_target(state.bpm_target)
+    return {"bpm_target": state.bpm_target}
+
+
+class GenreInjectPayload(BaseModel):
+    text: str
+
+
+@app.post("/api/genres/inject")
+async def api_genres_inject(payload: GenreInjectPayload) -> dict[str, Any]:
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(400, "text is required")
+
+    loop = asyncio.get_running_loop()
+    try:
+        genre: Genre = await loop.run_in_executor(None, interpret_genre_text, text)
+    except GenreInterpretationError as exc:
+        return {"ok": False, "message": str(exc)}
+
+    slug = slugify(genre.name)
+    path = PENDING_DIR / f"{slug}.json"
+    suffix = 2
+    while path.exists():
+        path = PENDING_DIR / f"{slug}_{suffix}.json"
+        suffix += 1
+    path.write_text(json.dumps(genre.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    if len(GENRES) >= MAX_GENRES:
+        note = f"（{MAX_GENRES}個に達しているため、現在位置から最も遠く・最も古いジャンルと入れ替わります）"
+    else:
+        note = "（次回生成以降に反映）"
+    return {
+        "ok": True,
+        "message": f"「{genre.name}」を待機ジャンルに追加しました{note}",
+        "genre": genre.to_dict(),
+    }
 
 
 @app.get("/api/state")
@@ -229,7 +317,8 @@ def _open_app_window(url: str) -> None:
 
     if _is_wsl():
         # WSL上ではWindows側のブラウザをcmd.exe経由で起動する。
-        for browser in ("msedge", "chrome"):
+        # 普段使いブラウザ(Brave)と衝突しない専用ウィンドウとしてChromeを使う。
+        for browser in ("chrome",):
             try:
                 subprocess.Popen(  # noqa: S603, S607
                     ["cmd.exe", "/c", "start", "", browser, f"--app={url}", "--window-size=760,900"]
@@ -247,12 +336,25 @@ def _open_app_window(url: str) -> None:
     webbrowser.open_new(url)
 
 
+def _port_in_use(host: str, port: int) -> bool:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex((host, port)) == 0
+
+
 if __name__ == "__main__":
     import uvicorn
 
     display_host = "127.0.0.1"
-    threading.Thread(
-        target=_open_app_window, args=(f"http://{display_host}:{PORT}/",), daemon=True
-    ).start()
+    display_url = f"http://{display_host}:{PORT}/"
 
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    if _port_in_use(display_host, PORT):
+        # 既に別プロセスが起動済み。二重起動でクラッシュさせず、既存インスタンスの
+        # ウィンドウを開き直すだけにする。
+        logger.info("port %s is already in use; opening existing instance instead of starting a new server", PORT)
+        _open_app_window(display_url)
+    else:
+        threading.Thread(target=_open_app_window, args=(display_url,), daemon=True).start()
+        uvicorn.run(app, host="0.0.0.0", port=PORT)

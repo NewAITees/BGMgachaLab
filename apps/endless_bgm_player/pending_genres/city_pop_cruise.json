@@ -1,0 +1,28 @@
+{
+  "name": "City Pop Cruise",
+  "instruments": [
+    "Smooth electric piano",
+    "Funky bass line",
+    "Layered synthesizers",
+    "Glistening saxophone",
+    "Tropical percussion"
+  ],
+  "mood": [
+    "Nostalgic",
+    "Upbeat",
+    "Dreamy",
+    "Cool",
+    "Carefree"
+  ],
+  "bpm_range": [
+    100,
+    125
+  ],
+  "extra_vocab": [
+    "Ocean breeze feel",
+    "Japanese summer night",
+    "Neon glow ambiance",
+    "Retro-funk vibes",
+    "Late evening cruising"
+  ]
+}

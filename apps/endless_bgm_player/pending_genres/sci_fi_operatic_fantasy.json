@@ -1,0 +1,28 @@
+{
+  "name": "Sci-Fi Operatic Fantasy",
+  "instruments": [
+    "lush synth pads",
+    "orchestral strings",
+    "choral vocals (Latin)",
+    "processed brass hits",
+    "gated reverb drums"
+  ],
+  "mood": [
+    "epic",
+    "melancholic",
+    "mysterious",
+    "awe-inspiring"
+  ],
+  "bpm_range": [
+    80,
+    120
+  ],
+  "extra_vocab": [
+    "dramatic build-ups",
+    "cinematic transitions",
+    "future folklore",
+    "sweeping harmonies",
+    "cosmic atmosphere",
+    "regal scope"
+  ]
+}

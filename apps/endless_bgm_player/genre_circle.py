@@ -61,9 +61,18 @@ def _load_genres() -> list[Genre]:
 
 GENRES: list[Genre] = _load_genres()
 
+MAX_GENRES = 12
+BPM_FLOOR = 70
+BPM_CEIL = 190
+
 # 差し込み済みだがまだ一度も生成に使われていないジャンル名 -> 出所ファイルパス。
 # 一度生成に使われたら genres.json へ永続化し、このファイルは削除する。
 _pending_file_by_name: dict[str, Path] = {}
+
+# ジャンルの挿入順(古いほど値が小さい)。12個の上限に達した状態で新規挿入する際、
+# 「現在位置から最も遠く、かつ最も古いジャンル」を置き換える対象を選ぶために使う。
+_genre_seq: dict[str, int] = {g.name: i for i, g in enumerate(GENRES)}
+_next_seq: int = len(GENRES)
 
 
 def _save_genres() -> None:
@@ -90,13 +99,47 @@ def _farthest_gap_index(current_position: float) -> int:
     return best_index
 
 
+def _farthest_genre_index_for_replacement(current_position: float) -> int:
+    """上限到達時に置き換える対象のindexを返す。
+
+    現在位置から円環上で最も遠いジャンルを優先し、距離が同程度の場合は
+    挿入順が最も古い(=_genre_seqが小さい)ジャンルを優先して選ぶ。
+    まだ一度も実生成に使われていない(=_pending_file_by_nameに残っている)
+    ジャンルは、まだ一度も再生されていないため置き換え対象から除外する。
+    """
+    n = len(GENRES)
+    current_deg = (current_position / n) * 360.0
+    candidates = [
+        (k, g) for k, g in enumerate(GENRES) if g.name not in _pending_file_by_name
+    ]
+    if not candidates:
+        # 全ジャンルが未使用(通常起こらないが安全のためのフォールバック)なら全体から選ぶ。
+        candidates = list(enumerate(GENRES))
+
+    best_index = candidates[0][0]
+    best_key: tuple[float, int] | None = None
+    for k, g in candidates:
+        gap_deg = (k / n) * 360.0
+        dist = abs((gap_deg - current_deg + 180) % 360 - 180)
+        seq = _genre_seq.get(g.name, 0)
+        key = (dist, -seq)  # 距離優先。同距離ならseqが小さい(古い)ほうを優先して選ぶ
+        if best_key is None or key > best_key:
+            best_key = key
+            best_index = k
+    return best_index
+
+
 def insert_pending_genres(current_position: float) -> float:
     """pending_genres/ にある未処理のジャンル定義を円環へ差し込む。
 
     複数ある場合は、都度その時点で現在位置から最も遠い隙間に順番に挿入する。
     円環のジャンル数が変わっても現在位置の実角度がずれないよう、position を
     比例して再スケールして返す。
+    既に12個(MAX_GENRES)に達している場合は、円環の大きさを増やさず、
+    現在位置から最も遠く・最も古いジャンルと入れ替える。
     """
+    global _next_seq
+
     position = current_position
     pending_files = sorted(PENDING_DIR.glob("*.json"))
     for path in pending_files:
@@ -110,11 +153,21 @@ def insert_pending_genres(current_position: float) -> float:
             # 既に(過去の実行で)取り込み済みの名前は二重挿入しない。
             continue
 
-        n_before = len(GENRES)
-        index = _farthest_gap_index(position)
-        GENRES.insert(index, genre)
-        n_after = len(GENRES)
-        position = position * (n_after / n_before)
+        if len(GENRES) >= MAX_GENRES:
+            replace_index = _farthest_genre_index_for_replacement(position)
+            removed = GENRES[replace_index]
+            GENRES[replace_index] = genre
+            _genre_seq.pop(removed.name, None)
+            _pending_file_by_name.pop(removed.name, None)
+        else:
+            n_before = len(GENRES)
+            index = _farthest_gap_index(position)
+            GENRES.insert(index, genre)
+            n_after = len(GENRES)
+            position = position * (n_after / n_before)
+
+        _genre_seq[genre.name] = _next_seq
+        _next_seq += 1
         _pending_file_by_name[genre.name] = path
 
     return position
@@ -151,17 +204,27 @@ class PromptResult:
     position: float
 
 
-def build_prompt(pos: float, duration_seconds: int = 120) -> PromptResult:
-    """円環上の位置から、隣接ジャンルを補間したプロンプトを合成する。"""
+def build_prompt(
+    pos: float, duration_seconds: int = 120, bpm_target: int | None = None
+) -> PromptResult:
+    """円環上の位置から、隣接ジャンルを補間したプロンプトを合成する。
+
+    bpm_target が指定された場合、ジャンル由来のBPMの代わりに
+    その値を中心に上下する(ジッターのある)BPMを使う。
+    """
     n = len(GENRES)
     i = int(pos) % n
     f = pos - int(pos)
     j = (i + 1) % n
     g_i, g_j = GENRES[i], GENRES[j]
 
-    bpm_i_mid = sum(g_i.bpm_range) / 2
-    bpm_j_mid = sum(g_j.bpm_range) / 2
-    bpm = round(_lerp(bpm_i_mid, bpm_j_mid, f))
+    if bpm_target is not None:
+        bpm = round(random.gauss(bpm_target, 10))
+        bpm = max(BPM_FLOOR, min(BPM_CEIL, bpm))
+    else:
+        bpm_i_mid = sum(g_i.bpm_range) / 2
+        bpm_j_mid = sum(g_j.bpm_range) / 2
+        bpm = round(_lerp(bpm_i_mid, bpm_j_mid, f))
 
     instruments = list(g_i.instruments)
     mood = list(g_i.mood)

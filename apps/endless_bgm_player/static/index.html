@@ -182,6 +182,63 @@
     font-family: ui-monospace, monospace;
   }
   .status-log div { padding: 2px 0; }
+
+  .side-panel {
+    margin-top: 20px;
+    width: min(560px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel-box {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .panel-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .volume-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(320px, 80vw);
+    color: var(--text-dim);
+  }
+  .volume-row input[type="range"] { flex: 1; accent-color: var(--accent2); }
+  .bpm-row { display: flex; align-items: center; gap: 10px; }
+  .bpm-row input[type="range"] { flex: 1; accent-color: var(--accent2); }
+  .bpm-row input[type="checkbox"] { accent-color: var(--accent2); }
+  .bpm-value { min-width: 3.2em; text-align: right; color: var(--accent2); font-weight: 600; }
+  .genre-inject-row { display: flex; gap: 8px; }
+  .genre-inject-row input[type="text"] {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+  .genre-inject-row button {
+    padding: 8px 18px;
+    font-size: 0.8rem;
+  }
+  #refreshGenresBtn {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(110,231,255,0.35);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .inject-message { margin-top: 8px; font-size: 0.75rem; color: var(--text-dim); }
+  .inject-message.ok { color: var(--accent2); }
+  .inject-message.error { color: #ff7a7a; }
 </style>
 </head>
 <body>
@@ -209,6 +266,32 @@
     <button id="stopBtn" disabled>■ STOP</button>
   </div>
 
+  <div class="volume-row">
+    <span>🔊</span>
+    <input type="range" id="volumeSlider" min="0" max="100" value="80" />
+    <span class="bpm-value" id="volumeValue">80%</span>
+  </div>
+
+  <div class="side-panel">
+    <div class="panel-box">
+      <div class="panel-title">BPM 指定</div>
+      <div class="bpm-row">
+        <input type="checkbox" id="bpmEnable" />
+        <input type="range" id="bpmSlider" min="70" max="190" value="120" disabled />
+        <span class="bpm-value" id="bpmValue">120</span>
+      </div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-title">ジャンル追加（自由入力 → 解釈）</div>
+      <div class="genre-inject-row">
+        <input type="text" id="genreInjectInput" placeholder="例: ペルソナ風, Max Cooperっぽい, シティポップ" />
+        <button id="genreInjectBtn">追加</button>
+        <button id="refreshGenresBtn" title="円環を再取得して再描画（ページ全体のリロードは不要）">⟳ 更新</button>
+      </div>
+      <div class="inject-message" id="injectMessage"></div>
+    </div>
+  </div>
+
   <div class="status-log" id="statusLog"></div>
 
 <script>
@@ -223,6 +306,8 @@ let pendingQueue = [];
 let bufferCache = new Map();
 let activeAudioNodes = new Set();
 let skipResolver = null;
+let masterGain = null;
+let currentVolume = 0.8;
 
 const wheelEl = document.getElementById("wheel");
 const titleLineEl = document.getElementById("titleLine");
@@ -233,6 +318,15 @@ const startBtn = document.getElementById("startBtn");
 const skipBtn = document.getElementById("skipBtn");
 const stopBtn = document.getElementById("stopBtn");
 const statusLog = document.getElementById("statusLog");
+const bpmEnable = document.getElementById("bpmEnable");
+const bpmSlider = document.getElementById("bpmSlider");
+const bpmValue = document.getElementById("bpmValue");
+const genreInjectInput = document.getElementById("genreInjectInput");
+const genreInjectBtn = document.getElementById("genreInjectBtn");
+const injectMessage = document.getElementById("injectMessage");
+const refreshGenresBtn = document.getElementById("refreshGenresBtn");
+const volumeSlider = document.getElementById("volumeSlider");
+const volumeValue = document.getElementById("volumeValue");
 
 function log(msg) {
   const line = document.createElement("div");
@@ -338,7 +432,7 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 async function playTrackWithCrossfade(track, buffer) {
   const gain = audioCtx.createGain();
-  gain.connect(audioCtx.destination);
+  gain.connect(masterGain);
   const source = audioCtx.createBufferSource();
   source.buffer = buffer;
   source.connect(gain);
@@ -421,7 +515,12 @@ startBtn.addEventListener("click", async () => {
   genreLineEl.textContent = "";
   log("START");
 
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = currentVolume;
+    masterGain.connect(audioCtx.destination);
+  }
   await audioCtx.resume();
   if (!ws || ws.readyState !== WebSocket.OPEN) connectWebSocket();
   await fetch("/api/start", { method: "POST" });
@@ -447,7 +546,89 @@ stopBtn.addEventListener("click", async () => {
   log("STOP");
 });
 
+async function loadBpmTarget() {
+  const res = await fetch("/api/bpm");
+  const data = await res.json();
+  if (data.bpm_target !== null && data.bpm_target !== undefined) {
+    bpmEnable.checked = true;
+    bpmSlider.disabled = false;
+    bpmSlider.value = data.bpm_target;
+    bpmValue.textContent = data.bpm_target;
+  } else {
+    bpmEnable.checked = false;
+    bpmSlider.disabled = true;
+  }
+}
+
+async function sendBpmTarget() {
+  const target = bpmEnable.checked ? Number(bpmSlider.value) : null;
+  await fetch("/api/bpm", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
+  });
+  log(target === null ? "BPM指定: 自動" : `BPM指定: ${target}付近`);
+}
+
+bpmSlider.addEventListener("input", () => {
+  bpmValue.textContent = bpmSlider.value;
+});
+bpmSlider.addEventListener("change", () => {
+  if (bpmEnable.checked) sendBpmTarget();
+});
+bpmEnable.addEventListener("change", () => {
+  bpmSlider.disabled = !bpmEnable.checked;
+  sendBpmTarget();
+});
+
+volumeSlider.addEventListener("input", () => {
+  currentVolume = Number(volumeSlider.value) / 100;
+  volumeValue.textContent = `${volumeSlider.value}%`;
+  if (masterGain) masterGain.gain.value = currentVolume;
+});
+
+refreshGenresBtn.addEventListener("click", async () => {
+  refreshGenresBtn.disabled = true;
+  try {
+    await loadGenres();
+    // ジャンル数が変わると割合(周率)が変わるため、折り返し検知用の積算値をリセットする。
+    continuousPosition = null;
+    lastRawPosition = null;
+    log(`ジャンル一覧を更新（${genres.length}個）`);
+  } finally {
+    refreshGenresBtn.disabled = false;
+  }
+});
+
+genreInjectBtn.addEventListener("click", async () => {
+  const text = genreInjectInput.value.trim();
+  if (!text) return;
+  genreInjectBtn.disabled = true;
+  injectMessage.textContent = "解釈中…";
+  injectMessage.className = "inject-message";
+  try {
+    const res = await fetch("/api/genres/inject", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+    injectMessage.textContent = data.message || (data.ok ? "追加しました" : "失敗しました");
+    injectMessage.className = "inject-message " + (data.ok ? "ok" : "error");
+    if (data.ok) {
+      genreInjectInput.value = "";
+      log(`ジャンル追加: ${text}`);
+    }
+  } catch (err) {
+    injectMessage.textContent = "通信エラー: " + err;
+    injectMessage.className = "inject-message error";
+  } finally {
+    genreInjectBtn.disabled = false;
+  }
+});
+
 loadGenres();
+loadBpmTarget();
 </script>
 </body>
 </html>
